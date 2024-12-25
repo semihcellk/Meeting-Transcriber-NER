@@ -1,73 +1,78 @@
 import streamlit as st
 from transformers import pipeline
 
-# ------------------------------
-# Load Whisper Model
-# ------------------------------
 def load_whisper_model():
-    """
-    Load the Whisper model for audio transcription.
-    """
-    # TODO
-    pass  # add logic to load the whisper model
+    
+    pipe1 = pipeline("automatic-speech-recognition", model="openai/whisper-tiny")
+    
+    return pipe1
 
-
-# ------------------------------
-# Load NER Model
-# ------------------------------
 def load_ner_model():
-    """
-    Load the Named Entity Recognition (NER) model pipeline.
-    """
-    # TODO
-    pass  # add logic to load the NER model
+    
+    pipe2 = pipeline("token-classification", model="dslim/bert-base-NER", aggregation_strategy="simple")
+    
+    return pipe2
 
-
-# ------------------------------
-# Transcription Logic
-# ------------------------------
 def transcribe_audio(uploaded_file):
-    """
-    Transcribe audio into text using the Whisper model.
-    Args:
-        uploaded_file: Audio file uploaded by the user.
-    Returns:
-        str: Transcribed text from the audio file.
-    """
-    # TODO
-    pass  # implement transcription logic here
+    whisper_model = load_whisper_model()
+    read_file = uploaded_file.read()
+    text = whisper_model(read_file, return_timestamps=True)
+    return text["text"]
 
-
-# ------------------------------
-# Entity Extraction
-# ------------------------------
 def extract_entities(text, ner_pipeline):
-    """
-    Extract entities from transcribed text using the NER model.
-    Args:
-        text (str): Transcribed text.
-        ner_pipeline: NER pipeline loaded from Hugging Face.
-    Returns:
-        dict: Grouped entities (ORGs, LOCs, PERs).
-    """
-    #TODO
-    pass  # implement entity extraction logic here
+    ner_model = ner_pipeline(text)
+    entities = {"ORGs": [], "LOCs": [], "PERs": []}
 
+    for result in ner_model:
+        entity_type = result["entity_group"]
+        entity_word = result["word"]
 
-# ------------------------------
-# Main Streamlit Application
-# ------------------------------
+        if entity_type.startswith("B-") or entity_type.startswith("I-"):
+            entity_type = entity_type[2:]
+
+        if entity_type == "ORG":
+            entities["ORGs"].append(entity_word)
+        elif entity_type == "LOC":
+            entities["LOCs"].append(entity_word)
+        elif entity_type == "PER":
+            entities["PERs"].append(entity_word)
+            
+    for key in entities:
+        entities[key] = list(dict.fromkeys(entities[key]))
+        
+    return entities
+
 def main():
     st.title("Meeting Transcription and Entity Extraction")
 
-    # You must replace below
     STUDENT_NAME = "Semih Çelik"
     STUDENT_ID = "150230104"
     st.write(f"**{STUDENT_ID} - {STUDENT_NAME}**")
+    st.write("""
+    Upload a business meeting audio file to:
 
-    # TODO
-    # Fill here to create the streamlit application by using the functions you filled
+    1. Transcribe the meeting audio into text.
+    2. Extract key entities such as Person, Organizations, Dates, and Locations.
+    """)
 
+    uploaded_file = st.file_uploader("Upload an audio file (WAV format)", type=["wav"])
+    if uploaded_file is not None:
+        st.info("Transcribing the audio file... This may take a minute.")
+        text = transcribe_audio(uploaded_file)
+        st.subheader("Transcription:")
+        st.write(text)
+
+        st.info("Extracting entities...")
+        ner_pipeline = load_ner_model()
+        extract = extract_entities(text, ner_pipeline)
+
+        st.subheader("Extracted Entities:")
+        st.subheader("Organizations (ORGs):")
+        st.markdown("- " + "\n- ".join(extract["ORGs"]))
+        st.subheader("Locations (LOCs):")
+        st.markdown("- " + "\n- ".join(extract["LOCs"]))
+        st.subheader("Persons (PERs):")
+        st.markdown("- " + "\n- ".join(extract["PERs"]))
 
 if __name__ == "__main__":
     main()
