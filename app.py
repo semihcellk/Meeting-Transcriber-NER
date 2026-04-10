@@ -1,94 +1,100 @@
 import streamlit as st
 from transformers import pipeline
 
-# Load the Whisper Model
+st.set_page_config(page_title="Meeting Insights Extractor", page_icon="🎙️", layout="wide")
+
+# Load the Whisper Model with caching
+@st.cache_resource(show_spinner="Loading Whisper Model...")
 def load_whisper_model():
-    # Load the Whisper model for automatic speech recognition
     pipe1 = pipeline("automatic-speech-recognition", model="openai/whisper-tiny")
-    return pipe1  # Return the loaded model
+    return pipe1
 
-# Load the NER (Named Entity Recognition) Model
+# Load the NER Model with caching
+@st.cache_resource(show_spinner="Loading NER Model...")
 def load_ner_model():
-    # Load a token classification pipeline for NER with the "dslim/bert-base-NER" model
-    # Using aggregation_strategy="simple" to combine fragmented entities
     pipe2 = pipeline("token-classification", model="dslim/bert-base-NER", aggregation_strategy="simple")
-    return pipe2  # Return the loaded model
+    return pipe2
 
-# Transcribe audio into text using Whisper model
 def transcribe_audio(uploaded_file):
-    whisper_model = load_whisper_model()  # Load the Whisper model
-    read_file = uploaded_file.read()  # Read the uploaded audio file as binary data
-    text = whisper_model(read_file, return_timestamps=True)  # Transcribe the audio
-    return text["text"]  # Return the transcribed text
+    whisper_model = load_whisper_model()
+    read_file = uploaded_file.read()
+    text = whisper_model(read_file, return_timestamps=True)
+    return text["text"]
 
-# Extract entities (Organizations, Locations, Persons) from the transcribed text
 def extract_entities(text, ner_pipeline):
-    ner_model = ner_pipeline(text)  # Perform NER on the transcribed text
-    entities = {"ORGs": [], "LOCs": [], "PERs": []}  # Initialize a dictionary for storing entities
+    ner_model = ner_pipeline(text)
+    entities = {"Organizations": [], "Locations": [], "Persons": []}
 
-    # Loop through each recognized entity from the model
     for result in ner_model:
-        entity_type = result["entity_group"]  # Get the type of the entity (ORG, LOC, PER, etc.)
-        entity_word = result["word"]  # Get the recognized word
+        entity_group = result["entity_group"]
+        entity_word = result["word"]
 
-        # Normalize the entity type by removing "B-" or "I-" prefixes
-        if entity_type.startswith("B-") or entity_type.startswith("I-"):
-            entity_type = entity_type[2:]
+        if entity_group == "ORG":
+            entities["Organizations"].append(entity_word)
+        elif entity_group == "LOC":
+            entities["Locations"].append(entity_word)
+        elif entity_group == "PER":
+            entities["Persons"].append(entity_word)
 
-        # Add the entity to the corresponding category (ORG, LOC, PER)
-        if entity_type == "ORG":
-            entities["ORGs"].append(entity_word)
-        elif entity_type == "LOC":
-            entities["LOCs"].append(entity_word)
-        elif entity_type == "PER":
-            entities["PERs"].append(entity_word)
-
-    # Remove duplicate entities while preserving order
+    # Remove duplicates
     for key in entities:
         entities[key] = list(dict.fromkeys(entities[key]))
         
-    return entities  # Return the extracted entities
+    return entities
 
-# Main Streamlit app
 def main():
-    st.title("Meeting Transcription and Entity Extraction")  # Display the app title
-
-    # Display student information
-    STUDENT_NAME = "Semih Çelik"
-    STUDENT_ID = "150230104"
-    st.write(f"**{STUDENT_ID} - {STUDENT_NAME}**")
-    
-    # Provide instructions for the app
-    st.write("""
+    st.title("🎙️ Audio Insights & Entity Extractor")
+    st.markdown("""
     Upload a business meeting audio file to:
-
-    1. Transcribe the meeting audio into text.
-    2. Extract key entities such as Person, Organizations, Dates, and Locations.
+    1. **Transcribe** the meeting audio into text automatically.
+    2. **Extract** key entities such as Persons, Organizations, and Locations from the transcription.
     """)
 
-    # File uploader for uploading an audio file (only accepts WAV format)
     uploaded_file = st.file_uploader("Upload an audio file (WAV format)", type=["wav"])
+    
     if uploaded_file is not None:
-        # Transcribe the uploaded audio file
-        st.info("Transcribing the audio file... This may take a minute.")
-        text = transcribe_audio(uploaded_file)
-        st.subheader("Transcription:")  # Display transcription title
-        st.write(text)  # Show the transcribed text
+        with st.spinner("🎙️ Transcribing the audio file... This may take a moment."):
+            text = transcribe_audio(uploaded_file)
+            
+        st.success("Transcription Complete!")
+        
+        # Display Transcription
+        with st.expander("📝 View Full Transcription", expanded=True):
+            st.write(text)
 
-        # Perform Named Entity Recognition (NER) on the transcribed text
-        st.info("Extracting entities...")
-        ner_pipeline = load_ner_model()  # Load the NER model
-        extract = extract_entities(text, ner_pipeline)  # Extract entities
+        with st.spinner("🔍 Extracting Named Entities..."):
+            ner_pipeline = load_ner_model()
+            extracted_entities = extract_entities(text, ner_pipeline)
+            
+        st.success("Entity Extraction Complete!")
 
-        # Display extracted entities in separate sections
-        st.subheader("Extracted Entities:")
-        st.subheader("Organizations (ORGs):")
-        st.markdown("- " + "\n- ".join(extract["ORGs"]))  # Display organizations as a markdown list
-        st.subheader("Locations (LOCs):")
-        st.markdown("- " + "\n- ".join(extract["LOCs"]))  # Display locations as a markdown list
-        st.subheader("Persons (PERs):")
-        st.markdown("- " + "\n- ".join(extract["PERs"]))  # Display persons as a markdown list
+        # Display Entities using columns
+        st.subheader("Extracted Entities")
+        col1, col2, col3 = st.columns(3)
+        
+        with col1:
+            st.markdown("### 🏢 Organizations")
+            if extracted_entities["Organizations"]:
+                for org in extracted_entities["Organizations"]:
+                    st.markdown(f"- {org}")
+            else:
+                st.write("*No organizations found.*")
+                
+        with col2:
+            st.markdown("### 📍 Locations")
+            if extracted_entities["Locations"]:
+                for loc in extracted_entities["Locations"]:
+                    st.markdown(f"- {loc}")
+            else:
+                st.write("*No locations found.*")
 
-# Entry point for the app
+        with col3:
+            st.markdown("### 👤 Persons")
+            if extracted_entities["Persons"]:
+                for per in extracted_entities["Persons"]:
+                    st.markdown(f"- {per}")
+            else:
+                st.write("*No persons found.*")
+
 if __name__ == "__main__":
     main()
