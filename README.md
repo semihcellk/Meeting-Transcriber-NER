@@ -1,6 +1,6 @@
 # Audio Insights & Entity Extractor 🎙️🔍
 
-> **Academic Project:** This application was originally developed as a homework project for the _Intro to Data Science and Engineering_ course at **Istanbul Technical University (ITU)**.
+> **Academic Project:** This application was originally developed as a homework project for the _Intro to Data Science and Engineering_ course at **Istanbul Technical University (ITU)** in 2024.
 
 A web application that automatically transcribes meeting audio files and extracts key Named Entities (Persons, Organizations, and Locations) from the transcribed text using state-of-the-art NLP models.
 
