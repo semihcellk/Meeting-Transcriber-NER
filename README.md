@@ -1,5 +1,7 @@
 # Audio Insights & Entity Extractor 🎙️🔍
 
+> **Academic Project:** This application was originally developed as a homework project for the _Intro to Data Science and Engineering_ course at **Istanbul Technical University (ITU)**.
+
 A web application that automatically transcribes meeting audio files and extracts key Named Entities (Persons, Organizations, and Locations) from the transcribed text using state-of-the-art NLP models.
 
 Built as part of a robust Python data pipeline combining Audio Speech Recognition (ASR) and Named Entity Recognition (NER), visualized with a dynamic Streamlit frontend.
@@ -25,6 +27,7 @@ Built as part of a robust Python data pipeline combining Audio Speech Recognitio
 First, ensure you have python installed. It is recommended to use a virtual environment.
 
 1. **Clone the repository:**
+
    ```bash
    git clone https://github.com/semihcellk/Meeting-Transcriber-NER.git
    cd Meeting-Transcriber-NER
@@ -48,9 +51,10 @@ First, ensure you have python installed. It is recommended to use a virtual envi
    streamlit run app.py
    ```
 2. Navigate to the local URL provided by Streamlit (usually `http://localhost:8501`).
-3. Upload a `/wav` audio file using the provided file uploader. 
-   *(Note: You can use the included `business_dialog.wav` to test it right away).*
+3. Upload a `/wav` audio file using the provided file uploader.
+   _(Note: You can use the included `business_dialog.wav` to test it right away)._
 4. Wait for the ASR model to complete transcribing, and view the intelligently grouped entities!
 
 ---
-*Created by [Semih Çelik](https://github.com/semihcellk)*
+
+_Created by [Semih Çelik](https://github.com/semihcellk)_
